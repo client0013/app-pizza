@@ -1,518 +1,306 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pizzaria Demo</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
-body{
-background:#f5f5f5;
-padding:15px;
-}
-
-.secao{
-background:#fff;
-padding:15px;
-margin-bottom:15px;
-border-radius:10px;
-box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-
-h2{
-color:#c62828;
-margin-bottom:10px;
-}
-
-.produto{
-border-bottom:1px solid #ddd;
-padding:12px 0;
-}
-
-button{
-background:#2e7d32;
-color:white;
-border:none;
-padding:10px;
-border-radius:5px;
-cursor:pointer;
-margin-top:5px;
-}
-
-button:disabled{
-background:#999;
-cursor:not-allowed;
-}
-
-.remover{
-background:#c62828;
-}
-
-input,
-select,
-textarea{
-width:100%;
-padding:10px;
-margin-top:5px;
-margin-bottom:10px;
-border:1px solid #ccc;
-border-radius:5px;
-}
-
-textarea{
-height:80px;
-resize:none;
-}
-
-.oculto{
-display:none;
-}
-
-.itemCarrinho{
-border-bottom:1px dashed #ccc;
-padding:10px 0;
-}
-
-#modal{
-position:fixed;
-left:0;
-top:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,.6);
-display:none;
-align-items:center;
-justify-content:center;
-padding:15px;
-}
-
-#modalBox{
-background:white;
-width:100%;
-max-width:500px;
-padding:15px;
-border-radius:10px;
-}
-
-.fechar{
-background:#666;
-}
-
-#total{
-font-size:22px;
-font-weight:bold;
-color:#c62828;
-}
-
-#telaStatus{
-display:none;
-}
-
-.statusBox{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-
-#statusAtual{
-font-size:24px;
-font-weight:bold;
-margin-top:10px;
-margin-bottom:20px;
-color:#2e7d32;
-}
-
-#resumoFinal{
-white-space:pre-line;
-line-height:1.6;
-}
-
-.controles{
-display:flex;
-gap:10px;
-align-items:center;
-margin-bottom:10px;
-}
-
-.controles button{
-margin:0;
-width:40px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzaria Delivery - Protótipo</title>
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --dark: #2c3e50;
+            --light: #f8f9fa;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .secao {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--light);
+            padding-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        .produto-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--light);
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+        .campo {
+            margin-bottom: 10px;
+        }
+        .campo label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .campo input, .campo select, .campo textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .meio-a-meio-box {
+            background: #fff3f3;
+            border: 1px dashed var(--primary);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        #status-tela {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .status-badge {
+            background: #f1c40f;
+            color: white;
+            padding: 10px;
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+    </style>
 </head>
 <body>
 
-<div id="telaPedido">
+<header>🍕 Pizzaria Teste - Faça seu Pedido</header>
+
+<div class="container" id="app-cliente">
+    
+    <!-- CARDÁPIO -->
     <div class="secao">
-        <h2>Cardápio</h2>
-        <div id="listaProdutos">Carregando cardápio...</div>
-    </div>
-
-    <div class="secao">
-        <h2>Carrinho</h2>
-        <div id="carrinho">Nenhum item adicionado.</div>
-        <br>
-        <div id="total">R$ 0,00</div>
-    </div>
-
-    <div class="secao">
-        <h2>Dados do Cliente</h2>
-        <label>Nome</label>
-        <input id="nome">
-
-        <label>Telefone</label>
-        <input id="telefone">
-
-        <label>Endereço</label>
-        <input id="endereco">
-
-        <label>Pagamento</label>
-        <select id="pagamento">
-            <option value="Pix">Pix</option>
-            <option value="Cartão">Cartão</option>
-            <option value="Dinheiro">Dinheiro</option>
-        </select>
-
-        <label>
-            <input type="checkbox" id="trocoCheck">
-            Precisa de troco
-        </label>
-
-        <div id="trocoArea" class="oculto">
-            <label>Troco para quanto?</label>
-            <input id="trocoPara" type="number" step="0.01" placeholder="Ex: 50.00">
+        <h2>📋 Nosso Cardápio</h2>
+        <div id="lista-produtos">
+            <div class="produto-item">
+                <div>
+                    <strong>Pizza Calabresa</strong><br>
+                    <small>Molho, mussarela, calabresa e cebola</small><br>
+                    <span>R$ 40,00</span>
+                </div>
+                <button class="btn" onclick="adicionarAoCarrinho('Pizza Calabresa', 40.00)">+ Adicionar</button>
+            </div>
+            <div class="produto-item">
+                <div>
+                    <strong>Pizza Mussarela</strong><br>
+                    <small>Molho, mussarela e rodelas de tomate</small><br>
+                    <span>R$ 38,00</span>
+                </div>
+                <button class="btn" onclick="adicionarAoCarrinho('Pizza Mussarela', 38.00)">+ Adicionar</button>
+            </div>
+            <div class="produto-item">
+                <div>
+                    <strong>Coca-Cola 2L</strong><br>
+                    <small>Refrigerante pet 2 litros</small><br>
+                    <span>R$ 10,00</span>
+                </div>
+                <button class="btn" onclick="adicionarAoCarrinho('Coca-Cola 2L', 10.00)">+ Adicionar</button>
+            </div>
         </div>
 
-        <button id="btnFinalizar" onclick="finalizarPedido()">
-            Finalizar Pedido
-        </button>
+        <!-- Opção Meio a Meio -->
+        <div class="meio-a-meio-box">
+            <strong>🍕 Deseja Pizza Meio a Meio?</strong>
+            <div class="campo" style="margin-top:8px;">
+                <select id="sabor1">
+                    <option value="Calabresa (Metade) - R$ 20,00" data-preco="20">Calabresa (Metade) - R$ 20,00</option>
+                </select>
+            </div>
+            <div class="campo">
+                <select id="sabor2">
+                    <option value="Mussarela (Metade) - R$ 19,00" data-preco="19">Mussarela (Metade) - R$ 19,00</option>
+                </select>
+            </div>
+            <button class="btn" style="background:#2c3e50; width:100%;" onclick="adicionarMeioAMeio()">Adicionar Meio a Meio</button>
+        </div>
+    </div>
+
+    <!-- CARRINHO -->
+    <div class="secao">
+        <h2>🛒 Seu Carrinho</h2>
+        <div id="itens-carrinho">
+            <p style="color:#7f8c8d; text-align:center;">Seu carrinho está vazio.</p>
+        </div>
+        <div class="campo" style="margin-top: 10px;">
+            <label>Observações do Pedido:</label>
+            <textarea id="observacoes" placeholder="Ex: tirar cebola, caprichar no queijo..."></textarea>
+        </div>
+        <h3 style="text-align: right; margin-bottom:0;">Total: R$ <span id="total-pedido">0,00</span></h3>
+    </div>
+
+    <!-- DADOS DE ENTREGA E PAGAMENTO -->
+    <div class="secao">
+        <h2>📍 Dados de Entrega e Pagamento</h2>
+        <div class="campo">
+            <label>Nome Completo:</label>
+            <input type="text" id="nome" required>
+        </div>
+        <div class="campo">
+            <label>Telefone / WhatsApp:</label>
+            <input type="tel" id="telefone" required>
+        </div>
+        <div class="campo">
+            <label>Endereço Completo (Rua, Nº, Bairro):</label>
+            <input type="text" id="endereco" required>
+        </div>
+        <div class="campo">
+            <label>Forma de Pagamento:</label>
+            <select id="pagamento" onchange="verificarTroco()">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão">Cartão (Débito/Crédito)</option>
+                <option value="Pix">Pix</option>
+            </select>
+        </div>
+        <div class="campo" id="campo-troco">
+            <label>Precisa de troco para quanto?</label>
+            <input type="number" id="troco" placeholder="Ex: 50">
+        </div>
+
+        <button class="btn btn-success" onclick="finalizarPedido()">🏁 FINALIZAR PEDIDO</button>
     </div>
 </div>
 
-<div id="telaStatus">
-    <div class="statusBox">
-        <h2 id="numeroPedido">Pedido</h2>
-        <div id="statusAtual">Enviando ao sistema... ⏳</div>
-        <div id="resumoFinal"></div>
-    </div>
-</div>
-
-<div id="modal">
-    <div id="modalBox">
-        <h2 id="tituloPizza"></h2>
-        <label>Tipo</label>
-        <select id="tipoPizza">
-            <option value="inteira">Inteira</option>
-            <option value="meia">Meio a Meio</option>
-        </select>
-
-        <div id="areaSegundoSabor" class="oculto">
-            <label>Segundo Sabor</label>
-            <select id="segundoSabor"></select>
+<!-- TELA DE STATUS (PÓS-PEDIDO) -->
+<div class="container" id="status-tela">
+    <div class="secao">
+        <h2>🎉 Pedido Enviado com Sucesso!</h2>
+        <p>Obrigado pelo seu pedido. Acompanhe o progresso abaixo:</p>
+        
+        <div class="status-badge" id="status-atual">RECEBIDO</div>
+        
+        <div style="text-align: left; margin-top: 20px; line-height: 1.8;">
+            <strong>📋 Resumo do Status:</strong>
+            <div id="linha-recebido" style="font-weight: bold; color: green;">✓ Recebido</div>
+            <div id="linha-preparando" style="color: #7f8c8d;">○ Preparando</div>
+            <div id="linha-saiu" style="color: #7f8c8d;">○ Saiu para Entrega</div>
+            <div id="linha-entregue" style="color: #7f8c8d;">○ Entregue</div>
         </div>
-
-        <label>Quantidade</label>
-        <input id="quantidadePizza" type="number" value="1" min="1">
-
-        <label>Borda</label>
-        <select id="bordaPizza">
-            <option value="Sem borda">Sem borda</option>
-            <option value="Catupiry">Catupiry (+5)</option>
-            <option value="Cheddar">Cheddar (+5)</option>
-            <option value="Chocolate">Chocolate (+8)</option>
-        </select>
-
-        <label>Observações</label>
-        <textarea id="observacaoPizza" placeholder="Sem cebola, sem azeitona..."></textarea>
-
-        <button onclick="confirmarPizza()">Adicionar ao Carrinho</button>
-        <button class="fechar" onclick="fecharModal()">Cancelar</button>
     </div>
 </div>
 
 <script>
-// Inicialização do cliente Supabase com os dados do seu projeto
-const SUPABASE_URL = "https://pkocqdyhhyfumuqublek.supabase.co";
-const SUPABASE_KEY = "sb_publishable_NFBsbVhsyVOzDrQYhTA7cg_PR04G32-";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let carrinho = [];
+    let total = 0;
 
-let produtos = []; 
-let carrinho = [];
-let pizzaAtual = null;
-let totalGeral = 0;
+    function adicionarAoCarrinho(nome, preco) {
+        carrinho.push({ nome: nome, preco: preco });
+        atualizarCarrinho();
+    }
 
-// Listeners de interface do usuário
-document.getElementById("trocoCheck").addEventListener("change", function(){
-    document.getElementById("trocoArea").classList.toggle("oculto", !this.checked);
-});
-
-document.getElementById("tipoPizza").addEventListener("change", function(){
-    document.getElementById("areaSegundoSabor").classList.toggle("oculto", this.value !== "meia");
-});
-
-// Carrega os dados reais inseridos na tabela 'produtos' do seu Supabase
-async function buscarCardapio(){
-    try {
-        const { data, error } = await supabase
-            .from('produtos')
-            .select('*')
-            .eq('ativo', true);
-
-        if (error) throw error;
+    function adicionarMeioAMeio() {
+        const s1 = document.getElementById('sabor1');
+        const s2 = document.getElementById('sabor2');
         
-        produtos = data;
-        carregarProdutos();
-    } catch (err) {
-        console.error("Erro ao carregar cardápio:", err);
-        document.getElementById("listaProdutos").innerText = "Erro ao buscar itens do menu.";
+        const preco1 = parseFloat(s1.options[s1.selectedIndex].getAttribute('data-preco'));
+        const preco2 = parseFloat(s2.options[s2.selectedIndex].getAttribute('data-preco'));
+        
+        const nomeCombo = `Pizza ½ ${s1.value.split(' - ')[0]} / ½ ${s2.value.split(' - ')[0]}`;
+        const precoCombo = preco1 + preco2;
+
+        carrinho.push({ nome: nomeCombo, preco: precoCombo });
+        atualizarCarrinho();
     }
-}
 
-function carregarProdutos(){
-    let html = "";
-    if(produtos.length === 0){
-        document.getElementById("listaProdutos").innerText = "Nenhum produto cadastrado ativo.";
-        return;
-    }
-    produtos.forEach((p, i)=>{
-        html += `
-        <div class="produto">
-            <b>${p.nome}</b><br>
-            ${p.descricao}<br><br>
-            R$ ${parseFloat(p.preco).toFixed(2)}<br>
-            ${p.categoria === "Pizza" 
-                ? `<button onclick="abrirPizza(${i})">Escolher</button>` 
-                : `<button onclick="addBebida(${i})">Adicionar</button>`}
-        </div>`;
-    });
-    document.getElementById("listaProdutos").innerHTML = html;
-}
+    function atualizarCarrinho() {
+        const containerItens = document.getElementById('itens-carrinho');
+        containerItens.innerHTML = '';
+        total = 0;
 
-function abrirPizza(index){
-    pizzaAtual = produtos[index];
-    document.getElementById("tituloPizza").innerText = pizzaAtual.nome;
-    document.getElementById("quantidadePizza").value = 1;
-    document.getElementById("bordaPizza").value = "Sem borda";
-    document.getElementById("observacaoPizza").value = "";
-
-    const select = document.getElementById("segundoSabor");
-    select.innerHTML = "";
-    produtos.filter(p => p.categoria === "Pizza").forEach(p=>{
-        if(p.nome !== pizzaAtual.nome){
-            select.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+        if(carrinho.length === 0) {
+            containerItens.innerHTML = '<p style="color:#7f8c8d; text-align:center;">Seu carrinho está vazio.</p>';
+            document.getElementById('total-pedido').innerText = '0,00';
+            return;
         }
-    });
 
-    document.getElementById("tipoPizza").value = "inteira";
-    document.getElementById("areaSegundoSabor").classList.add("oculto");
-    document.getElementById("modal").style.display = "flex";
-}
-
-function fecharModal(){
-    document.getElementById("modal").style.display = "none";
-}
-
-function confirmarPizza(){
-    const tipo = document.getElementById("tipoPizza").value;
-    const obs = document.getElementById("observacaoPizza").value;
-    const quantidade = parseInt(document.getElementById("quantidadePizza").value) || 1;
-    const borda = document.getElementById("bordaPizza").value;
-
-    let valorBorda = 0;
-    if(borda === "Catupiry" || borda === "Cheddar"){ valorBorda = 5; }
-    if(borda === "Chocolate"){ valorBorda = 8; }
-
-    const precoFinal = (parseFloat(pizzaAtual.preco) + valorBorda) * quantidade;
-
-    let item = {
-        tipo: "pizza",
-        modo: tipo,
-        sabor1: pizzaAtual.nome,
-        sabor2: tipo === "meia" ? document.getElementById("segundoSabor").value : "",
-        observacao: obs,
-        quantidade: quantidade,
-        borda: borda,
-        preco: precoFinal
-    };
-
-    carrinho.push(item);
-    fecharModal();
-    renderizarCarrinho();
-}
-
-function addBebida(index){
-    const beverage = produtos[index];
-    const existente = carrinho.find(item => item.tipo === "bebida" && item.nome === beverage.nome);
-
-    if(existente){
-        existente.quantidade++;
-        existente.precoTotal = existente.quantidade * existente.precoUnitario;
-    }else{
-        carrinho.push({
-            tipo: "bebida",
-            nome: beverage.nome,
-            quantidade: 1,
-            precoUnitario: parseFloat(beverage.preco),
-            precoTotal: parseFloat(beverage.preco)
-        });
-    }
-    renderizarCarrinho();
-}
-
-function removerItem(index){
-    carrinho.splice(index, 1);
-    renderizarCarrinho();
-}
-
-function alterarQuantidadeBebida(index, valor){
-    carrinho[index].quantidade += valor;
-    if(carrinho[index].quantidade <= 0){
-        carrinho.splice(index, 1);
-    }else{
-        carrinho[index].precoTotal = carrinho[index].quantidade * carrinho[index].precoUnitario;
-    }
-    renderizarCarrinho();
-}
-
-function renderizarCarrinho(){
-    const area = document.getElementById("carrinho");
-    if(carrinho.length === 0){
-        area.innerHTML = "Nenhum item adicionado.";
-        document.getElementById("total").innerText = "R$ 0,00";
-        totalGeral = 0;
-        return;
-    }
-
-    area.innerHTML = "";
-    totalGeral = 0;
-
-    carrinho.forEach((item, index)=>{
-        let html = "";
-        if(item.tipo === "pizza"){
-            html += `
-            <div class="itemCarrinho">
-                <b>${item.quantidade}x Pizza</b><br>
-                ${item.modo === "meia" ? `${item.sabor1} / ${item.sabor2}` : item.sabor1}<br>
-                Borda: ${item.borda}`;
-            if(item.observacao){ html += `<br>Obs: ${item.observacao}`; }
-            html += `<br>R$ ${item.preco.toFixed(2)}<br>
-            <button class="remover" onclick="removerItem(${index})">Remover</button>
-            </div>`;
-            totalGeral += item.preco;
-        }else{
-            html += `
-            <div class="itemCarrinho">
-                <b>${item.nome}</b><br>
-                <div class="controles">
-                    <button onclick="alterarQuantidadeBebida(${index},-1)">-</button>
-                    <span>${item.quantidade}</span>
-                    <button onclick="alterarQuantidadeBebida(${index},1)">+</button>
+        carrinho.forEach((item, index) => {
+            total += item.preco;
+            containerItens.innerHTML += `
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span>${item.nome}</span>
+                    <span>R$ ${item.preco.toFixed(2).replace('.', ',')}</span>
                 </div>
-                R$ ${item.precoTotal.toFixed(2)}<br>
-                <button class="remover" onclick="removerItem(${index})">Remover</button>
-            </div>`;
-            totalGeral += item.precoTotal;
+            `;
+        });
+
+        document.getElementById('total-pedido').innerText = total.toFixed(2).replace('.', ',');
+    }
+
+    function verificarTroco() {
+        const pag = document.getElementById('pagamento').value;
+        const campoTroco = document.getElementById('campo-troco');
+        if(pag === 'Dinheiro') {
+            campoTroco.style.display = 'block';
+        } else {
+            campoTroco.style.display = 'none';
         }
-        area.innerHTML += html;
-    });
-
-    document.getElementById("total").innerText = "R$ " + totalGeral.toFixed(2);
-}
-
-async function finalizarPedido(){
-    if(carrinho.length === 0){
-        alert("Adicione itens ao carrinho");
-        return;
     }
 
-    const nome = document.getElementById("nome").value.trim();
-    const telefone = document.getElementById("telefone").value.trim();
-    const endereco = document.getElementById("endereco").value.trim();
+    function finalizarPedido() {
+        const nome = document.getElementById('nome').value;
+        const telefone = document.getElementById('telefone').value;
+        const endereco = document.getElementById('endereco').value;
 
-    if(!nome || !telefone || !endereco){
-        alert("Preencha nome, telefone e endereço.");
-        return;
-    }
-
-    const pagamento = document.getElementById("pagamento").value;
-    const querTroco = document.getElementById("trocoCheck").checked;
-    let valorTrocoInput = document.getElementById("trocoPara").value;
-    
-    let trocoCalculado = null;
-    if(querTroco && valorTrocoInput) {
-        trocoCalculado = parseFloat(valorTrocoInput);
-    }
-
-    document.getElementById("btnFinalizar").disabled = true;
-
-    // Montagem da string textual descritiva dos itens para a coluna 'resumo_itens'
-    let resumoTexto = "";
-    carrinho.forEach(item=>{
-        if(item.tipo === "pizza"){
-            resumoTexto += `${item.quantidade}x Pizza - ${item.modo === "meia" ? `${item.sabor1} / ${item.sabor2}` : item.sabor1} (Borda: ${item.borda})`;
-            if(item.observacao){ resumoTexto += ` [Obs: ${item.observacao}]`; }
-            resumoTexto += ` - R$ ${item.preco.toFixed(2)}\n`;
-        }else{
-            resumoTexto += `${item.quantidade}x ${item.nome} - R$ ${item.precoTotal.toFixed(2)}\n`;
-        }
-    });
-
-    // Envio dos dados estruturados mapeados perfeitamente com o seu banco de dados
-    try {
-        const { data, error } = await supabase
-            .from('pedidos')
-            .insert([
-                {
-                    cliente_nome: nome,
-                    cliente_telefone: telefone,
-                    cliente_endereco: endereco,
-                    resumo_itens: resumoTexto,
-                    valor_total: totalGeral,
-                    forma_pagamento: pagamento,
-                    status: "Pendente",
-                    precisa_troco: querTroco,
-                    valor_troco: trocoCalculado
-                }
-            ])
-            .select(); // Retorna o registro criado incluindo o ID gerado automaticamente
-
-        if (error) throw error;
-
-        // Recupera o ID gerado do banco de dados (ou usa um fallback numérico se necessário)
-        let idPedido = (data && data[0]) ? data[0].id : Math.floor(1000 + Math.random() * 9000);
-
-        // Atualização de telas do lado do cliente
-        document.getElementById("telaPedido").style.display = "none";
-        document.getElementById("telaStatus").style.display = "block";
-        document.getElementById("numeroPedido").innerText = "Pedido #" + idPedido;
-
-        let mensagemLocal = `Cliente: ${nome}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n${resumoTexto}\nTOTAL: R$ ${totalGeral.toFixed(2)}\nPagamento: ${pagamento}\n`;
-        if(querTroco && trocoCalculado) { 
-            mensagemLocal += `Troco para: R$ ${trocoCalculado.toFixed(2)} (Troco: R$ ${(trocoCalculado - totalGeral).toFixed(2)})\n`; 
+        if(!nome || !telefone || !endereco || carrinho.length === 0) {
+            alert('Por favor, preencha todos os dados e adicione itens ao carrinho!');
+            return;
         }
 
-        document.getElementById("resumoFinal").innerText = mensagemLocal;
-        document.getElementById("statusAtual").innerText = "Pedido Recebido na Pizzaria! ✅";
+        // Transiciona visualmente para a tela de status (Simulação)
+        document.getElementById('app-cliente').style.display = 'none';
+        document.getElementById('status-tela').style.display = 'block';
 
-    } catch (err) {
-        console.error("Erro ao salvar no Supabase:", err);
-        alert("Falha ao salvar no banco de dados. Verifique o console ou as regras de RLS.");
-        document.getElementById("btnFinalizar").disabled = false;
+        // Simula a mudança automática de status das fases iniciais do protótipo
+        setTimeout(() => {
+            document.getElementById('status-atual').innerText = "PREPARANDO";
+            document.getElementById('linha-preparando').style.color = "green";
+            document.getElementById('linha-preparando').style.fontWeight = "bold";
+        }, 5000);
     }
-}
-
-// Inicialização automática
-buscarCardapio();
 </script>
+
 </body>
 </html>
