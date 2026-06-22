@@ -153,7 +153,7 @@ width:40px;
 
 <h2>Cardápio</h2>
 
-<div id="listaProdutos"></div>
+<div id="listaProdutos">Carregando cardápio...</div>
 
 </div>
 
@@ -305,52 +305,10 @@ Cancelar
 
 <script>
 
-const produtos = [
+const url = "https://pkocqdyhhyfumuqublek.supabase.co";
+const chave = "sb_publishable_NFBsbVhsyVOzDrQYhTA7cg_PR04G32-";
 
-{
-nome:"Calabresa",
-categoria:"Pizza",
-descricao:"Molho de tomate, queijo muçarela, calabresa fatiada, cebola e orégano",
-preco:45
-},
-
-{
-nome:"Muçarela",
-categoria:"Pizza",
-descricao:"Molho de tomate, queijo muçarela, tomate e orégano",
-preco:45
-},
-
-{
-nome:"Frango com Catupiry",
-categoria:"Pizza",
-descricao:"Molho de tomate, queijo muçarela, frango desfiado, catupiry e orégano",
-preco:45
-},
-
-{
-nome:"Portuguesa",
-categoria:"Pizza",
-descricao:"Molho de tomate, queijo muçarela, presunto, ovos, cebola, ervilha e orégano",
-preco:45
-},
-
-{
-nome:"Coca-Cola 2L",
-categoria:"Bebida",
-descricao:"Refrigerante Coca-Cola 2 litros",
-preco:15
-},
-
-{
-nome:"Guaraná Antarctica 2L",
-categoria:"Bebida",
-descricao:"Refrigerante Guaraná Antarctica 2 litros",
-preco:15
-}
-
-];
-
+let produtos = [];
 let carrinho = [];
 let pizzaAtual = null;
 let totalGeral = 0;
@@ -385,7 +343,26 @@ this.value !== "meia"
 }
 );
 
-function carregarProdutos(){
+async function carregarProdutos(){
+    try {
+        const response = await fetch(`${url}/rest/v1/produtos?select=*`, {
+            headers: {
+                "apikey": chave,
+                "Authorization": `Bearer ${chave}`
+            }
+        });
+        
+        if (!response.ok) throw new Error("Erro ao carregar produtos");
+        
+        produtos = await response.json();
+        renderizarListaProdutos();
+    } catch (error) {
+        console.error(error);
+        document.getElementById("listaProdutos").innerHTML = "Erro ao carregar o cardápio. Verifique sua conexão.";
+    }
+}
+
+function renderizarListaProdutos(){
 
 let html = "";
 
@@ -424,6 +401,7 @@ document.getElementById(
 ).innerHTML = html;
 
 }
+
 function abrirPizza(index){
 
 pizzaAtual = produtos[index];
