@@ -45,6 +45,7 @@ padding:10px;
 border-radius:5px;
 cursor:pointer;
 margin-top:5px;
+transition: background 0.3s;
 }
 
 .btn-voltar{
@@ -171,35 +172,73 @@ width:40px;
     color: white;
 }
 
+/* Seletor de quantidade para bebidas */
+.seletor-bebida {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.seletor-bebida button {
+    width: 35px;
+    height: 35px;
+    background: #eee;
+    color: #333;
+    font-weight: bold;
+    font-size: 18px;
+    border: 1px solid #ccc;
+}
+
+.seletor-bebida span {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+.btn-add-bebida {
+    background: #2e7d32;
+    padding: 10px 20px;
+    color: white;
+    font-weight: bold;
+    min-width: 120px;
+}
+
+.btn-add-bebida:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+
+.btn-adicionado {
+    background: #1565c0 !important;
+}
+
 </style>
 </head>
 <body>
 
 <div id="telaPedido">
 
-    <!-- Navegação por Abas para facilitar o fluxo -->
     <div class="abas-container">
         <div class="aba ativa" id="abaPizzas" onclick="irParaSecao('pizzas')">1. Pizzas</div>
         <div class="aba" id="abaBebidas" onclick="irParaSecao('bebidas')">2. Bebidas</div>
         <div class="aba" id="abaCarrinho" onclick="irParaSecao('dados')">3. Finalizar</div>
     </div>
 
-    <!-- SEÇÃO 1: PIZZAS -->
     <div id="secaoPizzas" class="secao">
         <h2>Escolha sua Pizza</h2>
         <div id="listaPizzas">Carregando pizzas...</div>
     </div>
 
-    <!-- SEÇÃO 2: BEBIDAS -->
     <div id="secaoBebidas" class="secao oculto">
         <button class="btn-voltar" onclick="irParaSecao('pizzas')">← Voltar para Pizzas</button>
         <h2>Escolha sua Bebida</h2>
         <div id="listaBebidas">Carregando bebidas...</div>
         <br>
-        <button style="width:100%; background:#c62828; font-size:18px;" onclick="irParaSecao('dados')">Ir para o Carrinho →</button>
+        <button style="width:100%; background:#c62828; font-size:18px; height:50px;" onclick="irParaSecao('dados')">Ver Carrinho e Finalizar →</button>
     </div>
 
-    <!-- SEÇÃO 3: DADOS E CARRINHO -->
     <div id="secaoDados" class="secao oculto">
         <button class="btn-voltar" onclick="irParaSecao('bebidas')">← Voltar para Bebidas</button>
         
@@ -297,7 +336,8 @@ let carrinho = [];
 let pizzaAtual = null;
 let totalGeral = 0;
 
-// Alternar visibilidade das seções
+let qtdBebidasTemporaria = {};
+
 function irParaSecao(secao) {
     document.getElementById('secaoPizzas').classList.add('oculto');
     document.getElementById('secaoBebidas').classList.add('oculto');
@@ -341,6 +381,13 @@ async function carregarProdutos(){
         if (!response.ok) throw new Error("Erro ao carregar produtos");
         
         produtos = await response.json();
+        
+        produtos.forEach(p => {
+            if(p.categoria !== "Pizza") {
+                qtdBebidasTemporaria[p.id] = 0;
+            }
+        });
+
         renderizarListaProdutos();
     } catch (error) {
         console.error(error);
@@ -348,27 +395,47 @@ async function carregarProdutos(){
     }
 }
 
+function alterarQtdTempBebida(id, valor) {
+    let novaQtd = (qtdBebidasTemporaria[id] || 0) + valor;
+    if(novaQtd < 0) novaQtd = 0;
+    qtdBebidasTemporaria[id] = novaQtd;
+    document.getElementById(`qtd-temp-${id}`).innerText = novaQtd;
+    
+    // Desabilita o botão de adicionar se a quantidade for 0
+    const btn = document.getElementById(`btn-add-${id}`);
+    btn.disabled = novaQtd === 0;
+}
+
 function renderizarListaProdutos(){
     let htmlPizzas = "";
     let htmlBebidas = "";
 
     produtos.forEach((p, i) => {
-        let card = `
-            <div class="produto">
-                <b>${p.nome}</b><br>
-                ${p.descricao}<br><br>
-                R$ ${p.preco.toFixed(2)}<br>
-                ${p.categoria === "Pizza" 
-                    ? `<button onclick="abrirPizza(${i})">Escolher</button>` 
-                    : `<button onclick="addBebida(${i})">Adicionar</button>`
-                }
-            </div>
-        `;
-
         if(p.categoria === "Pizza") {
-            htmlPizzas += card;
+            htmlPizzas += `
+                <div class="produto">
+                    <b>${p.nome}</b><br>
+                    ${p.descricao}<br><br>
+                    R$ ${p.preco.toFixed(2)}<br>
+                    <button onclick="abrirPizza(${i})">Escolher</button>
+                </div>
+            `;
         } else {
-            htmlBebidas += card;
+            htmlBebidas += `
+                <div class="produto">
+                    <b>${p.nome}</b><br>
+                    ${p.descricao}<br><br>
+                    R$ ${p.preco.toFixed(2)}<br>
+                    
+                    <div class="seletor-bebida">
+                        <button onclick="alterarQtdTempBebida(${p.id}, -1)">-</button>
+                        <span id="qtd-temp-${p.id}">0</span>
+                        <button onclick="alterarQtdTempBebida(${p.id}, 1)">+</button>
+                        
+                        <button id="btn-add-${p.id}" class="btn-add-bebida" onclick="addBebidaComQtd(${i})" disabled>Adicionar</button>
+                    </div>
+                </div>
+            `;
         }
     });
 
@@ -410,7 +477,7 @@ function confirmarPizza(){
 
     const precoFinal = (pizzaAtual.preco + valorBorda) * quantidade;
 
-    let item = {
+    carrinho.push({
         tipo: "pizza",
         modo: tipo,
         sabor1: pizzaAtual.nome,
@@ -419,32 +486,53 @@ function confirmarPizza(){
         quantidade: quantidade,
         borda: borda,
         preco: precoFinal
-    };
+    });
 
-    carrinho.push(item);
     fecharModal();
     renderizarCarrinho();
-    
-    // NOVIDADE: Ao confirmar a pizza, vai automaticamente para as bebidas
     irParaSecao('bebidas');
 }
 
-function addBebida(index){
+function addBebidaComQtd(index){
     const bebida = produtos[index];
+    const qtdDesejada = qtdBebidasTemporaria[bebida.id] || 0;
+    
+    // Valida se a quantidade é maior que 0
+    if(qtdDesejada <= 0) {
+        alert("Selecione uma quantidade maior que 0");
+        return;
+    }
+    
     const existente = carrinho.find(item => item.tipo === "bebida" && item.nome === bebida.nome);
 
     if(existente){
-        existente.quantidade++;
+        existente.quantidade += qtdDesejada;
         existente.precoTotal = existente.quantidade * existente.precoUnitario;
     } else {
         carrinho.push({
             tipo: "bebida",
             nome: bebida.nome,
-            quantidade: 1,
+            quantidade: qtdDesejada,
             precoUnitario: bebida.preco,
-            precoTotal: bebida.preco
+            precoTotal: bebida.preco * qtdDesejada
         });
     }
+
+    // Feedback visual no botão em vez de alert
+    const btn = document.getElementById(`btn-add-${bebida.id}`);
+    const textoOriginal = btn.innerText;
+    btn.innerText = "Adicionado!";
+    btn.classList.add("btn-adicionado");
+    
+    setTimeout(() => {
+        btn.innerText = textoOriginal;
+        btn.classList.remove("btn-adicionado");
+    }, 1500);
+
+    // Reset da quantidade visual após adicionar
+    qtdBebidasTemporaria[bebida.id] = 0;
+    document.getElementById(`qtd-temp-${bebida.id}`).innerText = "0";
+    btn.disabled = true;
 
     renderizarCarrinho();
 }
@@ -511,24 +599,19 @@ function renderizarCarrinho(){
     document.getElementById("total").innerText = "R$ " + totalGeral.toFixed(2);
 }
 
-function atualizarStatusPedido(){
-    setTimeout(() => { document.getElementById("statusAtual").innerText = "Preparando 🍕"; }, 5000);
-    setTimeout(() => { document.getElementById("statusAtual").innerText = "Saiu para Entrega 🛵"; }, 10000);
-    setTimeout(() => { document.getElementById("statusAtual").innerText = "Entregue 🎉"; }, 15000);
-}
-
 function finalizarPedido(){
-    if(carrinho.length === 0){
-        alert("Adicione itens ao carrinho");
-        return;
-    }
-
     const nome = document.getElementById("nome").value.trim();
     const telefone = document.getElementById("telefone").value.trim();
     const endereco = document.getElementById("endereco").value.trim();
 
     if(!nome || !telefone || !endereco){
         alert("Preencha nome, telefone e endereço.");
+        irParaSecao('dados');
+        return;
+    }
+
+    if(carrinho.length === 0){
+        alert("Adicione pelo menos uma pizza ou bebida ao carrinho.");
         return;
     }
 
@@ -554,7 +637,11 @@ function finalizarPedido(){
     document.getElementById("telaStatus").style.display = "block";
     document.getElementById("numeroPedido").innerText = "Pedido #" + numeroPedido;
     document.getElementById("resumoFinal").innerText = mensagem;
-    atualizarStatusPedido();
+    
+    // Status fake
+    setTimeout(() => { document.getElementById("statusAtual").innerText = "Preparando 🍕"; }, 5000);
+    setTimeout(() => { document.getElementById("statusAtual").innerText = "Saiu para Entrega 🛵"; }, 10000);
+    setTimeout(() => { document.getElementById("statusAtual").innerText = "Entregue 🎉"; }, 15000);
 }
 
 carregarProdutos();
