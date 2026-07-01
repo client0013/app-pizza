@@ -24,7 +24,7 @@ textarea{ height:80px; resize:none; }
 #total{ font-size:22px; font-weight:bold; color:#c62828; }
 #telaStatus{ display:none; }
 .statusBox{ background:white; padding:20px; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.1); }
-#statusAtual{ font-size:24px; font-weight:bold; margin-top:10px; margin-bottom:20px; color:#c62828; }
+#statusAtual{ font-size:22px; font-weight:bold; margin-top:10px; margin-bottom:20px; color:#c62828; }
 #resumoFinal{ white-space:pre-line; line-height:1.6; }
 .controles{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
 .controles button{ margin:0; width:40px; }
@@ -96,7 +96,7 @@ textarea{ height:80px; resize:none; }
 <div id="telaStatus">
     <div class="statusBox">
         <h2 id="numeroPedido">Pedido #0001</h2>
-        <div id="statusAtual">Pedido Enviado ✅</div>
+        <div id="statusAtual">Carregando tempo estimado...</div>
         <div id="resumoFinal"></div>
         <br>
         <button onclick="location.reload()" style="background:#666; width:100%">Fazer Novo Pedido</button>
@@ -290,7 +290,7 @@ function renderizarCarrinho(){
     document.getElementById("total").innerText = "R$ " + totalGeral.toFixed(2);
 }
 
-// CÓDIGO ATUALIZADO DE ENVIO PARA O SUPABASE
+// CÓDIGO TOTALMENTE REFEITO COM CÁLCULO DE TEMPO DINÂMICO
 async function finalizarPedido(){
     const nome = document.getElementById("nome").value.trim();
     const telefone = document.getElementById("telefone").value.trim();
@@ -326,6 +326,7 @@ async function finalizarPedido(){
     };
 
     try {
+        // 1. SALVA O PEDIDO NO BANCO
         const response = await fetch(`${url}/rest/v1/pedidos`, {
             method: 'POST',
             headers: { "apikey": chave, "Authorization": `Bearer ${chave}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
@@ -335,17 +336,41 @@ async function finalizarPedido(){
         if(!response.ok) throw new Error("Falha ao salvar no banco");
 
         let numeroPedido = Math.floor(1000 + Math.random() * 9000);
-        let mensagemFinal = `Pedido #${numeroPedido}\n\nCliente: ${nome}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n${resumo}\nTOTAL: R$ ${totalGeral.toFixed(2)}\nPagamento: ${pagamento}\n`;
+        let mensagemFinal = `Cliente: ${nome}\nTelefone: ${telefone}\nEndereço: ${endereco}\n\n${resumo}\nTOTAL: R$ ${totalGeral.toFixed(2)}\nPagamento: ${pagamento}\n`;
         if(precisaTroco) mensagemFinal += `Troco para: R$ ${valorTroco}\n`;
 
         document.getElementById("telaPedido").style.display = "none";
         document.getElementById("telaStatus").style.display = "block";
         document.getElementById("numeroPedido").innerText = "Pedido #" + numeroPedido;
         document.getElementById("resumoFinal").innerText = mensagemFinal;
+
+        // 2. BUSCA O TEMPO CONFIGURADO PELO DONO
+        let tempoTotalMinutos = 60; // Caso o banco falhe, assume 60 min
+        try {
+            const resTempo = await fetch(`${url}/rest/v1/configuracoes?id=eq.1&select=tempo_minutos`, {
+                headers: { "apikey": chave, "Authorization": `Bearer ${chave}` }
+            });
+            if(resTempo.ok) {
+                const dataTempo = await resTempo.json();
+                if(dataTempo.length > 0) tempoTotalMinutos = dataTempo[0].tempo_minutos;
+            }
+        } catch(e) { console.error("Erro ao puxar tempo", e); }
+
+        // 3. MATEMÁTICA DO TEMPO (Transforma em milissegundos para o site entender)
+        const tempoTotalMs = tempoTotalMinutos * 60 * 1000;
         
-        setTimeout(() => { document.getElementById("statusAtual").innerText = "Preparando 🍕"; }, 5000);
-        setTimeout(() => { document.getElementById("statusAtual").innerText = "Saiu para Entrega 🛵"; }, 10000);
-        setTimeout(() => { document.getElementById("statusAtual").innerText = "Entregue 🎉"; }, 15000);
+        // Regras: 10% do tempo pra preparar, 70% sai pra entrega, 100% finaliza
+        const tempoPreparando = tempoTotalMs * 0.10; 
+        const tempoEntrega = tempoTotalMs * 0.70;    
+        const tempoEntregue = tempoTotalMs;          
+
+        // Exibe o status inicial já com a estimativa de tempo
+        document.getElementById("statusAtual").innerText = `Pedido Enviado ✅ (Tempo est.: ${tempoTotalMinutos} min)`;
+        
+        // Cria os gatilhos matemáticos automáticos
+        setTimeout(() => { document.getElementById("statusAtual").innerText = "Preparando 🍕"; }, tempoPreparando);
+        setTimeout(() => { document.getElementById("statusAtual").innerText = "Saiu para Entrega 🛵"; }, tempoEntrega);
+        setTimeout(() => { document.getElementById("statusAtual").innerText = "Entregue 🎉"; }, tempoEntregue);
 
     } catch (error) {
         console.error(error);
